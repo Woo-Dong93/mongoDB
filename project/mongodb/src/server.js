@@ -1,8 +1,7 @@
 const express = require("express");
 const app = express();
+const { userRouter } = require("./routes/userRoute");
 const mongoose = require("mongoose");
-
-const users = [];
 
 const MONGO_URI =
   "mongodb+srv://admin:biMuuAn6aQbTw5Cq@tutorial.gdksv.mongodb.net/BlogService?retryWrites=true&w=majority";
@@ -10,18 +9,20 @@ const MONGO_URI =
 const server = async () => {
   try {
     // promise를 return합니다.
-    let mongodbConnection = await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+      useFindAndModify: false,
+    });
+
+    mongoose.set("debug", true);
+    console.log("MongoDB conneted");
 
     app.use(express.json());
 
-    app.get("/user", function (req, res) {
-      return res.send({ users });
-    });
-
-    app.post("/user", function (req, res) {
-      users.push({ name: req.body.name, age: req.body.age });
-      return res.send({ success: true });
-    });
+    // 라우터 설정
+    app.use("/user", userRouter);
 
     app.listen(3000, function () {
       console.log("server listening on poert 3000");
