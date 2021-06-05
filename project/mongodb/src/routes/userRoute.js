@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const mongoose = require("mongoose");
 const userRouter = Router();
-const { User } = require("../models/User");
+const { User, Blog, Comment } = require("../models");
 
 userRouter.get("/", async (req, res) => {
   // 조건없이 다부르기
@@ -13,7 +13,7 @@ userRouter.get("/", async (req, res) => {
   }
 });
 
-userRouter.get(":userId", async (req, res) => {
+userRouter.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     // true: objectId형식, false: 아닐때
@@ -45,9 +45,19 @@ userRouter.delete("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     if (!mongoose.isValidObjectId(userId)) return res.status(400).send({ err: "invalild userId" });
-    // 삭제하는 객체를 return하게 된다. 못찾으면 null을 리턴함
-    // deleteOne도 가능합니다. 하지만 user를 받을 수 없다.
-    const user = await User.findOneAndDelete({ _id: userId });
+
+    const [user] = await Promise.all([
+      // 삭제하는 객체를 return하게 된다. 못찾으면 null을 리턴함
+      // deleteOne도 가능합니다. 하지만 user를 받을 수 없다.
+      User.findOneAndDelete({ _id: userId }),
+      // blog 삭제
+      Blog.deleteMany({ "user._id": userId }),
+      // 블로그 안에있는 후기 삭제
+      Blog.updateMany({ "comments.user": userId }, { $pull: { comments: { user: userId } } }),
+      // 후기 삭제])
+      Comment.deleteMany({ user: userId }),
+    ]);
+
     return res.send({ user });
   } catch (err) {
     return res.status(500).send({ err: err.message });
@@ -57,7 +67,7 @@ userRouter.delete("/:userId", async (req, res) => {
 userRouter.put("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(userId);
+
     if (!mongoose.isValidObjectId(userId)) return res.status(400).send({ err: "invalild userId" });
 
     const { age, name } = req.body;
@@ -65,14 +75,22 @@ userRouter.put("/:userId", async (req, res) => {
     if (age && typeof age !== "number") return res.status(400).send({ err: "age must be a number" });
     if (name && typeof name.first !== "string" && typeof name.last !== "string")
       return res.status(400).send({ err: "first and last name are strings" });
-    // let updateBody = {};
-    // if (age) updateBody.age = age;
-    // if (name) updateBody.name = name;
 
-    // const user = await User.findByIdAndUpdate(userId, updateBody, { new: true });
     let user = await User.findById(userId);
     if (age) user.age = age;
-    if (name) user.name = name;
+
+    if (name) {
+      user.name = name;
+      await Blog.updateMany({ "user._id": userId }, { "user.name": name });
+      // 하나의 블로그에 여러개의 코멘트가 있는데 그것을 다 바꿔야한다.
+      // 첫번째 인자에 필터를 넣지지 않는다.
+      // arrayFilters 사용
+      await Blog.updateMany(
+        {},
+        { "comments.$[element].userFullName": `${name.first} ${name.last}` },
+        { arrayFilters: [{ "element.user": userId }] }
+      );
+    }
     await user.save();
 
     return res.send({ user });

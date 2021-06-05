@@ -9,6 +9,7 @@ const CommentSchema = new Schema(
   {
     content: { type: String, require: true },
     user: { type: ObjectId, require: true, ref: "user" },
+    userFullName: { type: String, require: true },
     blog: { type: ObjectId, require: true, ref: "blog" },
   },
   { timestamps: true }
@@ -17,4 +18,4 @@ const CommentSchema = new Schema(
 // 실제 컬렉션 이름은 끝에 s가 붙습니다.
 const Comment = model("comment", CommentSchema);
 
-module.exports = { Comment };
+module.exports = { Comment, CommentSchema };

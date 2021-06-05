@@ -20,7 +20,7 @@ blogRouter.post("/", async (req, res) => {
     // 그냥 user를 넣어도 id를 뽑아서 넣어준다. = 몽구스가 값을 적절하게 보고 알아서 데이터를 만듭니다.
     // islive도 없어서 false도 넣어줍니다.
     //let blog = new Blog({ ...req.body, user });
-    let blog = new Blog({ ...req.body, user: userId });
+    let blog = new Blog({ ...req.body, user });
     await blog.save();
     return res.send({ blog });
   } catch (error) {
@@ -31,7 +31,8 @@ blogRouter.post("/", async (req, res) => {
 
 blogRouter.get("/", async (req, res) => {
   try {
-    const blogs = await Blog.find({});
+    const blogs = await Blog.find({}).limit(200);
+    // .populate([{ path: "user" }, { path: "comment", populate: { path: "user" } }]);
     return res.send({ blogs });
   } catch (error) {
     console.log(error);
