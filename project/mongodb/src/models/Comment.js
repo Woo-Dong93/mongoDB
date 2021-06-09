@@ -8,12 +8,14 @@ const {
 const CommentSchema = new Schema(
   {
     content: { type: String, require: true },
-    user: { type: ObjectId, require: true, ref: "user" },
+    user: { type: ObjectId, require: true, ref: "user", index: true },
     userFullName: { type: String, require: true },
     blog: { type: ObjectId, require: true, ref: "blog" },
   },
   { timestamps: true }
 );
+
+CommentSchema.index({ blog: 1, createdAt: -1 });
 
 // 실제 컬렉션 이름은 끝에 s가 붙습니다.
 const Comment = model("comment", CommentSchema);

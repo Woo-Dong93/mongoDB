@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const { isValidObjectId } = require("mongoose");
 const blogRouter = Router();
-const { Blog, User } = require("../models");
+const { Blog, User, Comment } = require("../models");
 
 blogRouter.post("/", async (req, res) => {
   try {
@@ -31,7 +31,13 @@ blogRouter.post("/", async (req, res) => {
 
 blogRouter.get("/", async (req, res) => {
   try {
-    const blogs = await Blog.find({}).limit(200);
+    let { page } = req.params;
+    page = parseInt(page);
+    // 한페이지 3개
+    const blogs = await Blog.find({})
+      .sort({ updatedAt: -1 })
+      .skip(page * 3)
+      .limit(3);
     // .populate([{ path: "user" }, { path: "comment", populate: { path: "user" } }]);
     return res.send({ blogs });
   } catch (error) {
@@ -46,6 +52,8 @@ blogRouter.get("/:blogId", async (req, res) => {
     if (!isValidObjectId(blogId)) return res.status(400).send({ error: "blogId is invaild" });
 
     const blog = await Blog.findOne({ _id: blogId });
+    // 코멘트 수 불러오기 : countDocuments()사용
+    //const commentCount = await Comment.find({ blog: blogId }).countDocuments();
     return res.send({ blog });
   } catch (error) {
     console.log(error);

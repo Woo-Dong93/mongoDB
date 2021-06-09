@@ -15,10 +15,18 @@ const BlogSchema = new Schema(
         last: { type: String, required: true },
       },
     },
+    commentsCount: { type: Number, default: 0, required: true },
     comments: [CommentSchema],
   },
   { timestamps: true }
 );
+
+// 자동 생성하는 key들에게 index부여, 복합키도 가능
+// 복합디 유니크 가능 : { unique: true }
+// BlogSchema.index({ "user._id": 1, updateAt: 1 }, { unique: true });
+BlogSchema.index({ "user._id": 1, updateAt: 1 });
+// test index
+BlogSchema.index({ title: "text", content: "text" });
 
 // 가상데이터 사용하지 않습니다.
 // // 가상키 생성

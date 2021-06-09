@@ -23,11 +23,19 @@ commentRouter.post("/", async (req, res) => {
 
     if (!blog.islive) return res.status(400).send({ error: "blog is not available" });
 
-    // 수정 및 추가
-    const comment = new Comment({ content, user, userFullName: `${user.name.first} ${user.name.last}`, blog });
+    // blog에 blogid를 넣어 서로 재참조를 방지합니다.
+    const comment = new Comment({ content, user, userFullName: `${user.name.first} ${user.name.last}`, blog: blogId });
 
-    // 블로그에도 추가해주기 = push api 활용
-    await Promise.all([comment.save(), Blog.updateOne({ _id: blogId }, { $push: { comments: comment } })]);
+    // 무한루프가 발생 : commets안에 blog를 또 넣어버리는 현상..=> 재참조현상막기
+    blog.commentsCount++;
+    blog.comments.push(comment);
+    // shift() : 첫번째가 날라갑니다 => 최신화 유지
+    if (blog.commentsCount > 3) blog.comments.shift();
+    await Promise.all([
+      comment.save(),
+      blog.save(),
+      //Blog.updateOne({ _id: blogId }, { $inc: { commentsCount: 1 } })
+    ]);
     return res.send({ comment });
   } catch (error) {
     console.log(error);
@@ -37,10 +45,16 @@ commentRouter.post("/", async (req, res) => {
 
 commentRouter.get("/", async (req, res) => {
   try {
+    let { page = 0 } = req.query;
+    page = parseInt(page);
     const { blogId } = req.params;
     if (!isValidObjectId(blogId)) return res.status(400).send({ error: "blogId is invaild" });
 
-    const comment = await Comment.find({ blog: blogId });
+    // 한페이지당 3개, 내림차순 => index도 걸어야 좋다
+    const comment = await Comment.find({ blog: blogId })
+      .sort({ createdAt: -1 })
+      .skip(page * 3)
+      .limit(3);
     return res.send({ comment });
   } catch (error) {
     console.log(error);

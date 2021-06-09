@@ -29,9 +29,10 @@ const server = async () => {
 
     app.listen(3000, async function () {
       console.log("server listening on poert 3000");
-      //for (let i = 0; i < 20; i++) {
-      //await generateFakeData(3, 5, 20);
-      //}
+      //await generateFakeData(10, 2, 10);
+      // for (let i = 0; i < 20; i++) {
+      //   await generateFakeData(100, 5, 5);
+      // }
     });
   } catch (err) {
     console.log(err);
